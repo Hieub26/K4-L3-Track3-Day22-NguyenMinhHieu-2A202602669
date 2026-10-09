@@ -301,6 +301,12 @@ def make_rm_scorer(name: str | Path, max_length: int = 4096) -> Scorer:
         with torch.no_grad():
             return float(rm(**batch).logits[0][0])
 
+    def release() -> None:
+        from .modeling import release as release_model
+
+        release_model(rm)
+
+    score.release = release  # call before loading the next judge: each one needs most of a T4
     return score
 
 

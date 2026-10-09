@@ -42,8 +42,8 @@ def main() -> int:
         print("LoRA weights were not loaded; refusing to export an SFT-only GGUF.")
         return 1
     model.save_pretrained_gguf(str(output), tokenizer, quantization_method=quants if len(quants) > 1 else quants[0])
-    for p in sorted(REPO.glob("gguf*/**/*.gguf")):
-        print(f"  {p.relative_to(REPO)}  {p.stat().st_size / 1e6:,.0f} MB")
+    for p in sorted(output.resolve().parent.glob(f"{output.name}*/**/*.gguf")):
+        print(f"  {p}  {p.stat().st_size / 1e6:,.0f} MB")
     return 0
 
 

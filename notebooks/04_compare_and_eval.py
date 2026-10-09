@@ -84,14 +84,14 @@ texts = [p["prompt"] for p in PROMPTS]
 
 model, tokenizer = MD.load_model(C.SFT_MERGED)
 sft_out = MD.generate(model, tokenizer, texts)
+MD.release(model)
 del model
-MD.cleanup()
 
 # The adapter config points at models/sft-merged, so this loads SFT + DPO.
 model, tokenizer = MD.load_model(DPO_ADAPTER)
 dpo_out = MD.generate(model, tokenizer, texts)
+MD.release(model)
 del model
-MD.cleanup()
 
 records = [{**p, "sft": s, "dpo": d} for p, s, d in zip(PROMPTS, sft_out, dpo_out)]
 # New outputs invalidate the old summary; saved verdicts record which outputs they judged.
@@ -165,13 +165,20 @@ if provider != "rm" and not J.has_judge_key(provider):
 
 sanity, per_judge = {}, {}
 if provider == "rm":
+    # The largest RM needs ~7.5 GiB in fp16; anything still resident from earlier stages (or from a
+    # previous failed run of this cell) can push a 15 GiB T4 over the edge.
+    MD.cleanup()
+    if torch.cuda.memory_allocated() / 1e9 > 1.0:
+        MD.gpu_holders()
+        MD.release_all()
+    print(f"GPU memory in use before the judges: {torch.cuda.memory_allocated() / 1e9:.2f} GB")
     for name in C.JUDGE_RM_MODELS:
         score = J.make_rm_scorer(name)
         sanity[name] = J.sanity_accuracy(score)
         print(f"{name}: Vietnamese sanity {sanity[name]:.0%} of {len(J.SANITY_PAIRS)} obvious pairs")
         per_judge[name] = [{**r, **J.rm_judge_pair(r["prompt"], r["sft"], r["dpo"], score)} for r in records]
+        score.release()
         del score
-        MD.cleanup()
     panel = [n for n in per_judge if sanity[n] >= 0.8] or list(per_judge)
     if len(panel) < len(per_judge):
         print(f"Dropped from the panel (sanity < 80%): {sorted(set(per_judge) - set(panel))}")

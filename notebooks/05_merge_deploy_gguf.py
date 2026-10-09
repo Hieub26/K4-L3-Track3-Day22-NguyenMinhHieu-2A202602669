@@ -69,13 +69,18 @@ model.save_pretrained_gguf(str(C.GGUF_DIR), tokenizer, quantization_method="q4_k
 
 
 def find_gguf(pattern: str = "q4_k_m") -> Path:
-    hits = [p for p in C.REPO_ROOT.glob("gguf*/**/*.gguf") if pattern in p.name.lower()]
-    assert hits, f"No *{pattern}*.gguf under {C.REPO_ROOT}/gguf*"
+    # GGUF_DIR may sit outside the repo (GGUF_DIR override), and Unsloth may write to a sibling `<dir>_gguf`.
+    hits = [p for p in C.GGUF_DIR.parent.glob(f"{C.GGUF_DIR.name}*/**/*.gguf") if pattern in p.name.lower()]
+    assert hits, f"No *{pattern}*.gguf under {C.GGUF_DIR}*"
     return max(hits, key=lambda p: p.stat().st_mtime)
 
 
+def shown(path: Path) -> str:
+    return str(path.relative_to(C.REPO_ROOT)) if path.is_relative_to(C.REPO_ROOT) else str(path)
+
+
 gguf_path = find_gguf()
-print(f"{gguf_path.relative_to(C.REPO_ROOT)}  {gguf_path.stat().st_size / 1e9:.2f} GB")
+print(f"{shown(gguf_path)}  {gguf_path.stat().st_size / 1e9:.2f} GB")
 del model
 MD.cleanup()
 
@@ -102,7 +107,7 @@ deploy_meta = {
     "base_model": C.BASE_MODEL,
     "adapter": str(C.DPO_ADAPTER.relative_to(C.REPO_ROOT)),
     "adapter_base": adapter_cfg.get("base_model_name_or_path"),
-    "gguf_path": str(gguf_path.relative_to(C.REPO_ROOT)),
+    "gguf_path": shown(gguf_path),
     "gguf_size_mb": round(gguf_path.stat().st_size / 1e6, 1),
     "quantization": "q4_k_m",
     "smoke_prompt": SMOKE_PROMPT,

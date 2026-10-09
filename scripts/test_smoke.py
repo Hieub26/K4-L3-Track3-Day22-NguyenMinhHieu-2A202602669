@@ -48,3 +48,5 @@ def test_colab_bundles_are_valid_and_current():
     for tier, path in (("T4", "Lab22_DPO_T4.ipynb"), ("BIGGPU", "Lab22_DPO_BigGPU.ipynb")):
         on_disk = json.loads((REPO / "colab" / path).read_text(encoding="utf-8"))
         assert on_disk == render(tier), f"colab/{path} is stale: run `make colab`"
+    kaggle = json.loads((REPO / "kaggle" / "Lab22_DPO_T4_Kaggle.ipynb").read_text(encoding="utf-8"))
+    assert kaggle == render("T4", kaggle=True), "kaggle/Lab22_DPO_T4_Kaggle.ipynb is stale: run `make colab`"

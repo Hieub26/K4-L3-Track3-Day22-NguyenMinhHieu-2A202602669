@@ -176,7 +176,9 @@ VARIANTS_DIR = ADAPTERS / "variants"
 GRPO_ADAPTER = ADAPTERS / "grpo"
 PREF_DIR = DATA / "pref"
 EVAL_DIR = DATA / "eval"
-GGUF_DIR = REPO_ROOT / "gguf"
+# The GGUF export needs ~17 GB of scratch space (16-bit merge + f16 GGUF + quants). Point GGUF_DIR
+# at a bigger filesystem when the repo's is small (Kaggle: /kaggle/working is capped at ~20 GB).
+GGUF_DIR = REPO_ROOT / _env("GGUF_DIR", "gguf")  # an absolute override replaces REPO_ROOT
 
 
 def ensure_dirs() -> None:

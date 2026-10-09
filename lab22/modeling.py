@@ -98,6 +98,59 @@ def cleanup() -> None:
         torch.cuda.empty_cache()
 
 
+def release(model) -> None:
+    """Free a model's GPU memory even if something else still references the object.
+
+    `del model` only helps when no other reference survives; Unsloth/PEFT wrappers can keep one,
+    and the weights then stay on the GPU. Emptying the tensors in place does not depend on that.
+    The model is unusable afterwards.
+    """
+    import torch
+
+    for tensor in [*model.parameters(), *model.buffers()]:
+        try:
+            tensor.data = torch.empty(0, dtype=tensor.dtype)
+        except Exception:  # exotic tensor types: leave them to the garbage collector
+            continue
+    cleanup()
+
+
+def release_all(min_gb: float = 0.3) -> None:
+    """`release` every module still holding at least `min_gb` on the GPU (leaked earlier stages)."""
+    import torch
+
+    gc.collect()
+    for obj in gc.get_objects():
+        try:
+            if isinstance(obj, torch.nn.Module):
+                size = sum(p.numel() * p.element_size() for p in obj.parameters() if p.is_cuda) / 1e9
+                if size >= min_gb:
+                    release(obj)
+        except Exception:  # half-built modules, weak references
+            continue
+    cleanup()
+
+
+def gpu_holders(min_gb: float = 0.3, top: int = 5) -> None:
+    """Print the CUDA modules still alive, to find what keeps GPU memory after `del`."""
+    import torch
+
+    gc.collect()
+    found = {}
+    for obj in gc.get_objects():
+        try:
+            if isinstance(obj, torch.nn.Module):
+                size = sum(p.numel() * p.element_size() for p in obj.parameters() if p.is_cuda) / 1e9
+                if size >= min_gb:
+                    found[id(obj)] = (size, type(obj).__name__)
+        except Exception:  # half-built modules, weak references
+            continue
+    for size, name in sorted(found.values(), reverse=True)[:top]:
+        print(f"  still on GPU: {name} ({size:.2f} GB)")
+    if not found:
+        print("  no live CUDA module found (memory may be held by a traceback or a cached tensor)")
+
+
 def precision_flags() -> dict:
     import torch
 
