@@ -171,10 +171,12 @@ Tôi không chạy NB7.
 - [ ] NB7 — GRPO (+8)
 - [ ] β-sweep (+6)
 - [ ] Chấm chéo bằng hai họ mô hình (+4)
-- [ ] Đẩy lên HF Hub + thẻ mô tả mô hình (+3)
+- [x] Đẩy lên HF Hub + thẻ mô tả mô hình (+3)
 - [ ] `BONUS-CHALLENGE.md` (không chấm điểm)
 
 NB5: file `sft-merged.Q4_K_M.gguf` nặng 2,50 GB. Câu trả lời HF và GGUF cho cùng một câu hỏi (trong `data/eval/deploy_meta.json`) có cùng nội dung, chỉ khác vài từ ("đổi chỗ" so với "hoán đổi"), đúng như mong đợi sau khi lượng tử hoá 4-bit. Ảnh: `screenshots/06-gguf-smoke.png`.
+
+HF Hub: https://huggingface.co/hieu1126/lab22-dpo-vn-v0 — adapter DPO ở thư mục gốc, adapter SFT trong `sft-mini/`. Thẻ mô tả ghi mô hình gốc, dữ liệu, siêu tham số, kết quả đánh giá và các hạn chế.
 
 ---
 
